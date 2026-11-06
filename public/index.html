@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#05070b">
+  <meta name="description" content="A self-hosted vector-style Asteroids arcade game.">
+  <title>Asteroids Enhanced</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">✳</span><span>ASTEROIDS <b>ENHANCED</b></span></div>
+      <div class="top-actions">
+        <button id="soundBtn" class="quiet" aria-label="Toggle sound">SOUND: ON</button>
+        <button id="fullBtn" class="quiet">FULL SCREEN</button>
+      </div>
+    </header>
+
+    <section class="game-frame" aria-label="Asteroids game">
+      <div class="hud">
+        <div><small>SCORE</small><strong id="score">000000</strong></div>
+        <div><small>BEST</small><strong id="best">000000</strong></div>
+        <div><small>WAVE</small><strong id="wave">01</strong></div>
+        <div><small>SHIPS</small><strong id="ships">3</strong></div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="game" width="960" height="640" aria-label="Asteroids playfield"></canvas>
+        <div id="overlay" class="overlay">
+          <div class="overlay-card">
+            <div class="eyebrow">VECTOR ARCADE • CLASSIC MODE</div>
+            <h1 id="overlayTitle">ASTEROIDS</h1>
+            <p id="overlayText">Pilot your ship. Break up the rocks. Stay alive.</p>
+            <button id="startBtn" class="primary">START GAME</button>
+            <div class="overlay-hint">ENTER TO START</div>
+          </div>
+        </div>
+      </div>
+      <footer class="statusbar">
+        <span>ARROWS / A D: ROTATE</span><span>W / ↑: THRUST</span><span>SPACE: FIRE</span><span>SHIFT: HYPERSPACE</span><span>P: PAUSE</span>
+      </footer>
+    </section>
+
+    <section class="lower">
+      <div class="help">
+        <h2>FLIGHT CONTROLS</h2>
+        <p>Rotate to aim, thrust to build momentum, and fire to split asteroids into smaller targets. Your ship keeps drifting until you counter-steer.</p>
+      </div>
+      <div class="touch-controls" aria-label="Touch controls">
+        <button data-control="left" aria-label="Rotate left">↶</button>
+        <button data-control="right" aria-label="Rotate right">↷</button>
+        <button data-control="thrust" aria-label="Thrust">▲</button>
+        <button data-control="fire" aria-label="Fire">FIRE</button>
+      </div>
+      <div class="legend">
+        <h2>SCORING</h2>
+        <p>Large rock <b>20</b> · Medium <b>50</b> · Small <b>100</b> · Saucer <b>200–1,000</b></p>
+      </div>
+    </section>
+    <footer class="page-footer">INDEPENDENT FAN-MADE GAME • LOCAL / LAN HOSTED • HIGH SCORES SAVED IN THIS BROWSER</footer>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
