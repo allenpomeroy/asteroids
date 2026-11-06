@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#05070b">
   <meta name="description" content="A self-hosted vector-style Asteroids arcade game.">
   <title>Asteroids Enhanced</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
   <main class="shell">
@@ -23,7 +23,7 @@
         <div><small>SCORE</small><strong id="score">000000</strong></div>
         <div><small>BEST</small><strong id="best">000000</strong></div>
         <div><small>WAVE</small><strong id="wave">01</strong></div>
-        <div><small>SHIPS</small><strong id="ships">3</strong></div>
+        <div><small>SHIPS</small><strong id="ships" class="ships" role="img" aria-label="3 ships left"></strong></div>
       </div>
       <div class="canvas-wrap">
         <canvas id="game" width="960" height="640" aria-label="Asteroids playfield"></canvas>
@@ -60,6 +60,8 @@
     </section>
     <footer class="page-footer">INDEPENDENT FAN-MADE GAME • LOCAL / LAN HOSTED • HIGH SCORES SAVED IN THIS BROWSER</footer>
   </main>
-  <script src="game.js"></script>
+  <!-- ?v= forces browsers (Safari especially) to fetch the new file instead of a cached copy; bump it on each change -->
+  <script src="game.js?v=2"></script>
 </body>
 </html>
+
