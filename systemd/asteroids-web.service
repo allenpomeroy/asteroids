@@ -1,0 +1,20 @@
+[Unit]
+Description=Asteroids Enhanced LAN web game
+After=network.target
+
+[Service]
+Type=simple
+User=asteroids
+Group=asteroids
+WorkingDirectory=/opt/asteroids-web/public
+ExecStart=/usr/bin/python3 -m http.server 8080 --bind 0.0.0.0
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/asteroids-web/public
+
+[Install]
+WantedBy=multi-user.target
