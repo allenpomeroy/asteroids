@@ -5,7 +5,21 @@ const W=canvas.width,H=canvas.height;
 const $=id=>document.getElementById(id);
 const ui={score:$('score'),best:$('best'),wave:$('wave'),ships:$('ships'),overlay:$('overlay'),title:$('overlayTitle'),text:$('overlayText'),start:$('startBtn'),sound:$('soundBtn')};
 const keys=new Set(),touch={left:false,right:false,thrust:false,fire:false};
-let state='ready',ship,rocks=[],shots=[],saucers=[],particles=[],score=0,lives=3,wave=1,nextExtra=10000,fireCooldown=0,saucerTimer=8,invulnerable=0,muted=false,audio=null,best=Number(localStorage.getItem('asteroids-enhanced-best')||0),last=0,elapsed=0;
+let state='ready',ship,rocks=[],shots=[],saucers=[],particles=[],score=0,lives=3,wave=1,nextExtra=10000,fireCooldown=0,saucerTimer=8,invulnerable=0,muted=false,audio=null,best=Number(loadBest()||0),last=0,elapsed=0;
+// localStorage can throw in Firefox when site data/cookies are blocked; never let that stop the game.
+function loadBest(){try{return localStorage.getItem('asteroids-enhanced-best')}catch(e){return 0}}
+function saveBest(v){try{localStorage.setItem('asteroids-enhanced-best',String(v))}catch(e){}}
+// Remaining-ships display: small vector ship icons (same outline as the player ship, pointing up).
+const MAX_SHIP_ICONS=8;
+const SHIP_ICON='<svg class="ship-icon" viewBox="-13 -18 26 32" aria-hidden="true"><path d="M0,-17 L10,12 L0,8 L-10,12 Z"/></svg>';
+let shownLives=-1;
+function renderShips(){
+  if(lives===shownLives)return;shownLives=lives;
+  const n=Math.max(0,lives),icons=Math.min(n,MAX_SHIP_ICONS);
+  ui.ships.innerHTML=SHIP_ICON.repeat(icons)+(n>MAX_SHIP_ICONS?`<span class="ship-more">+${n-MAX_SHIP_ICONS}</span>`:'');
+  ui.ships.setAttribute('aria-label',`${n} ship${n===1?'':'s'} left`);
+}
+renderShips();
 ui.best.textContent=fmt(best);ui.sound.textContent='SOUND: ON · TEST';
 function fmt(n){return String(n).padStart(6,'0')}
 function audioCtx(){
@@ -59,9 +73,9 @@ function makeRock(x,y,size,angle=rand(0,Math.PI*2),speed=rand(.35,1.15)){const n
 function addRock(x,y,size){rocks.push(makeRock(x,y,size))}
 function startWave(){rocks=[];shots=[];const count=Math.min(4+wave,12);for(let i=0;i<count;i++){let x,y;do{x=rand(0,W);y=rand(0,H)}while(Math.hypot(x-W/2,y-H/2)<150);rocks.push(makeRock(x,y,3))}ui.wave.textContent=String(wave).padStart(2,'0')}
 function start(){audioCtx();score=0;lives=3;wave=1;nextExtra=10000;ship=newShip();shots=[];saucers=[];particles=[];invulnerable=2.5;fireCooldown=0;saucerTimer=7;startWave();state='playing';ui.overlay.classList.add('hidden');updateHud()}
-function updateHud(){ui.score.textContent=fmt(score);ui.ships.textContent=String(lives);ui.best.textContent=fmt(best)}
+function updateHud(){ui.score.textContent=fmt(score);renderShips();ui.best.textContent=fmt(best)}
 function burst(x,y,count=12){for(let i=0;i<count;i++){const a=rand(0,Math.PI*2),s=rand(.6,3);particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.25,.8),max:.8})}}
-function award(n){score+=n;while(score>=nextExtra){lives++;nextExtra+=10000}if(score>best){best=score;localStorage.setItem('asteroids-enhanced-best',String(best))}updateHud()}
+function award(n){score+=n;while(score>=nextExtra){lives++;nextExtra+=10000}if(score>best){best=score;saveBest(best)}updateHud()}
 function fire(){if(fireCooldown>0)return;shots.push({x:ship.x+Math.cos(ship.a)*16,y:ship.y+Math.sin(ship.a)*16,vx:ship.vx+Math.cos(ship.a)*420,vy:ship.vy+Math.sin(ship.a)*420,life:1.05});fireCooldown=.18;sound('shoot')}
 function hyperspace(){if(!ship||state!=='playing')return;ship.x=rand(35,W-35);ship.y=rand(35,H-35);ship.vx=ship.vy=0;invulnerable=1.4;sound('warp')}
 function hitShip(){if(invulnerable>0)return;burst(ship.x,ship.y,24);lives--;updateHud();sound('boom');if(lives<=0){state='over';showOverlay('GAME OVER',`Final score: ${fmt(score)} · Best: ${fmt(best)}`,'PLAY AGAIN')}else{ship=newShip();invulnerable=2.3}}
@@ -71,7 +85,7 @@ function pause(){if(state==='playing'){state='paused';showOverlay('PAUSED','Take
 function input(name){
   const aliases={
     'ArrowLeft':['ArrowLeft','KeyA'],'a':['KeyA'],'ArrowRight':['ArrowRight','KeyD'],'d':['KeyD'],
-    'ArrowUp':['ArrowUp','KeyW'],'w':['KeyW'],' ':'Space'
+    'ArrowUp':['ArrowUp','KeyW'],'w':['KeyW'],' ':['Space']
   };
   const candidates=aliases[name]||[name];
   return candidates.some(k=>keys.has(k)||keys.has(k.toLowerCase()));
@@ -129,3 +143,4 @@ ui.sound.addEventListener('click',()=>{
 $('fullBtn').addEventListener('click',()=>{const el=document.querySelector('.game-frame');if(!document.fullscreenElement)el.requestFullscreen?.();else document.exitFullscreen?.()});
 document.querySelectorAll('[data-control]').forEach(b=>{const k=b.dataset.control;const down=e=>{e.preventDefault();touch[k]=true;audioCtx()},up=e=>{e.preventDefault();touch[k]=false};b.addEventListener('pointerdown',down);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,up))});
 requestAnimationFrame(loop);
+})();
