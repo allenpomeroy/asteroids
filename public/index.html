@@ -6,13 +6,15 @@
   <meta name="theme-color" content="#05070b">
   <meta name="description" content="A self-hosted vector-style Asteroids arcade game.">
   <title>Asteroids Enhanced</title>
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <main class="shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">✳</span><span>ASTEROIDS <b>ENHANCED</b></span></div>
       <div class="top-actions">
+        <button id="colorBtn" class="quiet" aria-haspopup="true" aria-expanded="false" aria-controls="colorPanel">COLORS</button>
+        <div id="colorPanel" class="color-panel" hidden></div>
         <button id="soundBtn" class="quiet" aria-label="Toggle sound">SOUND: ON</button>
         <button id="fullBtn" class="quiet">FULL SCREEN</button>
       </div>
@@ -38,7 +40,7 @@
         </div>
       </div>
       <footer class="statusbar">
-        <span>ARROWS / A D: ROTATE</span><span>W / ↑: THRUST</span><span>SPACE: FIRE</span><span>SHIFT: HYPERSPACE</span><span>P: PAUSE</span>
+        <span>ARROWS / A D: ROTATE</span><span>W / ↑: THRUST</span><span>SPACE: FIRE</span><span>SHIFT: HYPERSPACE</span><span>C: COLORS</span><span>P: PAUSE</span>
       </footer>
     </section>
 
@@ -61,7 +63,7 @@
     <footer class="page-footer">INDEPENDENT FAN-MADE GAME • LOCAL / LAN HOSTED • HIGH SCORES SAVED IN THIS BROWSER</footer>
   </main>
   <!-- ?v= forces browsers (Safari especially) to fetch the new file instead of a cached copy; bump it on each change -->
-  <script src="game.js?v=2"></script>
+  <script src="game.js?v=3"></script>
 </body>
 </html>
 

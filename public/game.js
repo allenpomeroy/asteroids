@@ -9,6 +9,19 @@ let state='ready',ship,rocks=[],shots=[],saucers=[],particles=[],score=0,lives=3
 // localStorage can throw in Firefox when site data/cookies are blocked; never let that stop the game.
 function loadBest(){try{return localStorage.getItem('asteroids-enhanced-best')}catch(e){return 0}}
 function saveBest(v){try{localStorage.setItem('asteroids-enhanced-best',String(v))}catch(e){}}
+// Phosphor colors. stroke = line color, glow = canvas shadow color. "white" keeps the original look.
+const PALETTE={
+  green:{name:'CRT GREEN',stroke:'#39ff6a',glow:'#00ff41'},
+  amber:{name:'CRT AMBER',stroke:'#ffb000',glow:'#ff8a00'},
+  white:{name:'WHITE',stroke:'#d9f8ff',glow:'#7deeff'}
+};
+const PALETTE_KEYS=Object.keys(PALETTE);
+const COLOR_PARTS=[['ship','SHIP'],['rocks','ASTEROIDS'],['saucers','SAUCERS'],['bullets','BULLETS']];
+const COLORS_KEY='asteroids-enhanced-colors';
+function loadColors(){const out={ship:'white',rocks:'white',saucers:'white',bullets:'white'};try{const c=JSON.parse(localStorage.getItem(COLORS_KEY)||'{}');for(const k in out)if(PALETTE[c[k]])out[k]=c[k]}catch(e){}return out}
+function saveColors(){try{localStorage.setItem(COLORS_KEY,JSON.stringify(colors))}catch(e){}}
+let colors=loadColors();
+function ink(part){const p=PALETTE[colors[part]];ctx.strokeStyle=p.stroke;ctx.fillStyle=p.stroke;ctx.shadowColor=p.glow}
 // Remaining-ships display: small vector ship icons (same outline as the player ship, pointing up).
 const MAX_SHIP_ICONS=8;
 const SHIP_ICON='<svg class="ship-icon" viewBox="-13 -18 26 32" aria-hidden="true"><path d="M0,-17 L10,12 L0,8 L-10,12 Z"/></svg>';
@@ -74,12 +87,12 @@ function addRock(x,y,size){rocks.push(makeRock(x,y,size))}
 function startWave(){rocks=[];shots=[];const count=Math.min(4+wave,12);for(let i=0;i<count;i++){let x,y;do{x=rand(0,W);y=rand(0,H)}while(Math.hypot(x-W/2,y-H/2)<150);rocks.push(makeRock(x,y,3))}ui.wave.textContent=String(wave).padStart(2,'0')}
 function start(){audioCtx();score=0;lives=3;wave=1;nextExtra=10000;ship=newShip();shots=[];saucers=[];particles=[];invulnerable=2.5;fireCooldown=0;saucerTimer=7;startWave();state='playing';ui.overlay.classList.add('hidden');updateHud()}
 function updateHud(){ui.score.textContent=fmt(score);renderShips();ui.best.textContent=fmt(best)}
-function burst(x,y,count=12){for(let i=0;i<count;i++){const a=rand(0,Math.PI*2),s=rand(.6,3);particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.25,.8),max:.8})}}
+function burst(x,y,count=12,part='rocks'){for(let i=0;i<count;i++){const a=rand(0,Math.PI*2),s=rand(.6,3);particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.25,.8),max:.8,part})}}
 function award(n){score+=n;while(score>=nextExtra){lives++;nextExtra+=10000}if(score>best){best=score;saveBest(best)}updateHud()}
 function fire(){if(fireCooldown>0)return;shots.push({x:ship.x+Math.cos(ship.a)*16,y:ship.y+Math.sin(ship.a)*16,vx:ship.vx+Math.cos(ship.a)*420,vy:ship.vy+Math.sin(ship.a)*420,life:1.05});fireCooldown=.18;sound('shoot')}
 function hyperspace(){if(!ship||state!=='playing')return;ship.x=rand(35,W-35);ship.y=rand(35,H-35);ship.vx=ship.vy=0;invulnerable=1.4;sound('warp')}
-function hitShip(){if(invulnerable>0)return;burst(ship.x,ship.y,24);lives--;updateHud();sound('boom');if(lives<=0){state='over';showOverlay('GAME OVER',`Final score: ${fmt(score)} · Best: ${fmt(best)}`,'PLAY AGAIN')}else{ship=newShip();invulnerable=2.3}}
-function splitRock(index){const r=rocks[index];rocks.splice(index,1);burst(r.x,r.y,r.size===3?13:9);award(r.size===3?20:r.size===2?50:100);if(r.size>1){for(let i=0;i<2;i++)rocks.push(makeRock(r.x,r.y,r.size-1,rand(0,Math.PI*2),rand(.8,1.8)))}sound('boom')}
+function hitShip(){if(invulnerable>0)return;burst(ship.x,ship.y,24,'ship');lives--;updateHud();sound('boom');if(lives<=0){state='over';showOverlay('GAME OVER',`Final score: ${fmt(score)} · Best: ${fmt(best)}`,'PLAY AGAIN')}else{ship=newShip();invulnerable=2.3}}
+function splitRock(index){const r=rocks[index];rocks.splice(index,1);burst(r.x,r.y,r.size===3?13:9,'rocks');award(r.size===3?20:r.size===2?50:100);if(r.size>1){for(let i=0;i<2;i++)rocks.push(makeRock(r.x,r.y,r.size-1,rand(0,Math.PI*2),rand(.8,1.8)))}sound('boom')}
 function showOverlay(title,text,button){ui.title.textContent=title;ui.text.textContent=text;ui.start.textContent=button;ui.overlay.classList.remove('hidden')}
 function pause(){if(state==='playing'){state='paused';showOverlay('PAUSED','Take a breather. Your flight is on hold.','RESUME')}else if(state==='paused'){state='playing';ui.overlay.classList.add('hidden')}}
 function input(name){
@@ -103,18 +116,18 @@ saucerTimer-=dt;if(saucerTimer<=0&&saucers.length===0){const dir=Math.random()<.
 for(const u of saucers){u.x+=u.vx*dt;u.y+=u.vy*dt+Math.sin(elapsed*3)*25*dt;u.fire-=dt;if(u.fire<=0){const a=Math.atan2(ship.y-u.y,ship.x-u.x)+rand(-.25,.25);shots.push({x:u.x,y:u.y,vx:Math.cos(a)*240,vy:Math.sin(a)*240,life:2,enemy:true});u.fire=rand(1.2,2.1)}}
 saucers=saucers.filter(u=>u.x>-60&&u.x<W+60);
 for(let j=shots.length-1;j>=0;j--){const b=shots[j];if(b.enemy&&Math.hypot(b.x-ship.x,b.y-ship.y)<12){shots.splice(j,1);hitShip()}}
-for(let i=saucers.length-1;i>=0;i--){const u=saucers[i];for(let j=shots.length-1;j>=0;j--){if(!shots[j].enemy&&Math.hypot(shots[j].x-u.x,shots[j].y-u.y)<(u.small?10:17)){shots.splice(j,1);saucers.splice(i,1);award(u.small?1000:200);burst(u.x,u.y,15);break}}}
+for(let i=saucers.length-1;i>=0;i--){const u=saucers[i];for(let j=shots.length-1;j>=0;j--){if(!shots[j].enemy&&Math.hypot(shots[j].x-u.x,shots[j].y-u.y)<(u.small?10:17)){shots.splice(j,1);saucers.splice(i,1);award(u.small?1000:200);burst(u.x,u.y,15,'saucers');break}}}
 for(const p of particles){p.x+=p.vx*60*dt;p.y+=p.vy*60*dt;p.life-=dt;wrap(p)}particles=particles.filter(p=>p.life>0);
 if(rocks.length===0){wave++;startWave();invulnerable=1.8}
 }
 function polygon(x,y,r,pts,angle=0){ctx.beginPath();pts.forEach((v,i)=>{const a=angle+i/pts.length*Math.PI*2,px=x+Math.cos(a)*r*v,py=y+Math.sin(a)*r*v;i?ctx.lineTo(px,py):ctx.moveTo(px,py)});ctx.closePath()}
 function draw(){ctx.clearRect(0,0,W,H);ctx.fillStyle='#02050a';ctx.fillRect(0,0,W,H);
-ctx.save();ctx.strokeStyle='#d9f8ff';ctx.fillStyle='#d9f8ff';ctx.lineWidth=1.65;ctx.shadowColor='#7deeff';ctx.shadowBlur=3;
-for(const r of rocks){polygon(r.x,r.y,r.r,r.pts,r.a);ctx.stroke()}
-for(const u of saucers){ctx.beginPath();ctx.ellipse(u.x,u.y, u.small?12:19,5,0,Math.PI,Math.PI*2);ctx.lineTo(u.x+(u.small?9:14),u.y+5);ctx.lineTo(u.x-(u.small?9:14),u.y+5);ctx.closePath();ctx.stroke();ctx.beginPath();ctx.ellipse(u.x,u.y-3, u.small?6:9,4,0,Math.PI,Math.PI*2);ctx.stroke()}
-for(const b of shots){ctx.beginPath();ctx.arc(b.x,b.y,b.enemy?2.5:2,0,Math.PI*2);ctx.fill()}
-for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillRect(p.x,p.y,2,2)}ctx.globalAlpha=1;
-if(ship&&state==='playing'&&(invulnerable<=0||Math.floor(elapsed*10)%2===0)){ctx.save();ctx.translate(ship.x,ship.y);ctx.rotate(ship.a);ctx.beginPath();ctx.moveTo(17,0);ctx.lineTo(-12,-10);ctx.lineTo(-8,0);ctx.lineTo(-12,10);ctx.closePath();ctx.stroke();if(input('ArrowUp')||input('w')||touch.thrust){ctx.beginPath();ctx.moveTo(-9,-5);ctx.lineTo(-19,0);ctx.lineTo(-9,5);ctx.stroke()}ctx.restore()}
+ctx.save();ctx.lineWidth=1.65;ctx.shadowBlur=3;
+ink('rocks');for(const r of rocks){polygon(r.x,r.y,r.r,r.pts,r.a);ctx.stroke()}
+ink('saucers');for(const u of saucers){ctx.beginPath();ctx.ellipse(u.x,u.y, u.small?12:19,5,0,Math.PI,Math.PI*2);ctx.lineTo(u.x+(u.small?9:14),u.y+5);ctx.lineTo(u.x-(u.small?9:14),u.y+5);ctx.closePath();ctx.stroke();ctx.beginPath();ctx.ellipse(u.x,u.y-3, u.small?6:9,4,0,Math.PI,Math.PI*2);ctx.stroke()}
+ink('bullets');for(const b of shots){ctx.beginPath();ctx.arc(b.x,b.y,b.enemy?2.5:2,0,Math.PI*2);ctx.fill()}
+for(const p of particles){ctx.fillStyle=PALETTE[colors[p.part]].stroke;ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillRect(p.x,p.y,2,2)}ctx.globalAlpha=1;
+if(ship&&state==='playing'&&(invulnerable<=0||Math.floor(elapsed*10)%2===0)){ink('ship');ctx.save();ctx.translate(ship.x,ship.y);ctx.rotate(ship.a);ctx.beginPath();ctx.moveTo(17,0);ctx.lineTo(-12,-10);ctx.lineTo(-8,0);ctx.lineTo(-12,10);ctx.closePath();ctx.stroke();if(input('ArrowUp')||input('w')||touch.thrust){ctx.beginPath();ctx.moveTo(-9,-5);ctx.lineTo(-19,0);ctx.lineTo(-9,5);ctx.stroke()}ctx.restore()}
 ctx.restore();
 }
 // Star field
@@ -130,6 +143,7 @@ window.addEventListener('keydown',e=>{
   if(code==='Enter'&&(state==='ready'||state==='over'))start();
   else if(code==='KeyP'||code==='Escape')pause();
   else if(code==='ShiftLeft'||code==='ShiftRight')hyperspace();
+  else if(code==='KeyC')cycleAllColors();
 });
 window.addEventListener('keyup',e=>keys.delete(e.code||e.key));
 window.addEventListener('pointerdown',unlockAudio,{passive:true});
@@ -142,5 +156,21 @@ ui.sound.addEventListener('click',()=>{
 });
 $('fullBtn').addEventListener('click',()=>{const el=document.querySelector('.game-frame');if(!document.fullscreenElement)el.requestFullscreen?.();else document.exitFullscreen?.()});
 document.querySelectorAll('[data-control]').forEach(b=>{const k=b.dataset.control;const down=e=>{e.preventDefault();touch[k]=true;audioCtx()},up=e=>{e.preventDefault();touch[k]=false};b.addEventListener('pointerdown',down);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,up))});
+// Color panel: one row per object plus an ALL row; choices saved in this browser.
+const colorBtn=$('colorBtn'),colorPanel=$('colorPanel');
+function swatches(part){return PALETTE_KEYS.map(k=>`<button type="button" class="swatch" data-part="${part}" data-color="${k}" style="--sw:${PALETTE[k].stroke}" title="${PALETTE[k].name}" aria-label="${PALETTE[k].name}"><i></i></button>`).join('')}
+colorPanel.innerHTML=[['all','ALL'],...COLOR_PARTS].map(([part,label])=>`<div class="color-row${part==='all'?' all':''}"><span>${label}</span><div role="group" aria-label="${label} color">${swatches(part)}</div></div>`).join('')+'<div class="color-hint">C: CYCLE ALL COLORS</div>';
+function applyColors(){
+  const parts=COLOR_PARTS.map(p=>p[0]),same=parts.every(p=>colors[p]===colors.ship);
+  colorPanel.querySelectorAll('.swatch').forEach(b=>{const on=b.dataset.part==='all'?same&&colors.ship===b.dataset.color:colors[b.dataset.part]===b.dataset.color;b.setAttribute('aria-pressed',on)});
+  const sp=PALETTE[colors.ship],root=document.documentElement.style;root.setProperty('--ship-ink',sp.stroke);root.setProperty('--ship-glow',sp.glow+'88');
+}
+function setColor(part,key){if(!PALETTE[key])return;if(part==='all')COLOR_PARTS.forEach(([p])=>colors[p]=key);else colors[part]=key;saveColors();applyColors()}
+function cycleAllColors(){const i=PALETTE_KEYS.indexOf(colors.ship);setColor('all',PALETTE_KEYS[(i+1)%PALETTE_KEYS.length])}
+function toggleColorPanel(open=colorPanel.hidden){colorPanel.hidden=!open;colorBtn.setAttribute('aria-expanded',open)}
+colorBtn.addEventListener('click',e=>{e.stopPropagation();toggleColorPanel()});
+colorPanel.addEventListener('click',e=>{e.stopPropagation();const b=e.target.closest('.swatch');if(b)setColor(b.dataset.part,b.dataset.color)});
+document.addEventListener('click',()=>{if(!colorPanel.hidden)toggleColorPanel(false)});
+applyColors();
 requestAnimationFrame(loop);
 })();
